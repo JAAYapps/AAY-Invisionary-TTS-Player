@@ -1,0 +1,166 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:AAYInvisionaryTTSPlayer.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="310" d:DesignHeight="180" Height="180" Width="310"
+        x:Class="AAYInvisionaryTTSPlayer.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/AAYicon.ico"
+        Title="Invisionary TTS Player"
+        SystemDecorations="None"
+        IsHitTestVisible="True"
+        Topmost="True">
+  
+    <Design.DataContext>
+        <!-- This only sets the DataContext for the previewer in an IDE,
+             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+  
+  <DockPanel x:Name="RootPanel">
+    <DockPanel.Background>
+      <LinearGradientBrush EndPoint="0%,0%" StartPoint="0%,100%">
+        <GradientStop Color="#FF288D48" Offset="0"/>
+        <GradientStop Color="#FF13D651" Offset="1"/>
+      </LinearGradientBrush>
+    </DockPanel.Background>
+    
+    <Panel IsHitTestVisible="True" DockPanel.Dock="Top" HorizontalAlignment="Stretch" VerticalAlignment="Center" >
+      <Grid x:Name="TitleBar" 
+            Height="30" 
+            VerticalAlignment="Center" 
+            PointerPressed="OnPointerPressed" PointerReleased="OnPointerReleased" PointerMoved="OnPointerMoved">
+        <Grid.Background>
+          <LinearGradientBrush EndPoint="0%,50%" StartPoint="0%,0%">
+            <GradientStop Color="#FF285C64"/>
+            <GradientStop Color="#FF11B6D1" Offset="1"/>
+          </LinearGradientBrush>
+        </Grid.Background>
+        <Image x:Name="Logo" HorizontalAlignment="Left" Height="30" VerticalAlignment="Top" Width="31" OpacityMask="#FFF90505" IsHitTestVisible="False" Stretch="UniformToFill" Margin="10,0,0,0" Source="../Assets/AAYicon.ico"/>
+        <TextBlock Text="Invisionary Text To Speech Player" HorizontalAlignment="Left" Margin="43,0,0,0" VerticalAlignment="Center" FontSize="12"/>
+        <Button x:Name="Minimizing"  HorizontalAlignment="Right" Margin="0,0,38,0" VerticalAlignment="Top" Width="35" Height="30" Background="#FFE0A11B" FontSize="16" FontWeight="Bold" Command="{Binding TogglePlayerViewCommand}" Click="Minimizing_OnClick">
+          <PathIcon Foreground="Black" Data="{Binding ToggleIconData}"/>
+        </Button>
+        <Button x:Name="CloseApp" HorizontalAlignment="Right" VerticalAlignment="Top" Width="35" Height="30" Background="#FFE01B1B" FontSize="16" Margin="0,0,2,0" FontWeight="Bold" Command="{Binding CloseProgramCommand}">
+          <PathIcon Foreground="Black" Data="{StaticResource close}" />
+        </Button>
+      </Grid>
+    </Panel>
+    
+    <Grid Margin="10,5,0,0" DockPanel.Dock="Top" VerticalAlignment="Top">
+      <TextBlock x:Name="SpokeWord" Text="{Binding WordStatus}" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="18"/>
+    </Grid>
+    
+    <Grid DockPanel.Dock="Bottom" x:Name="PlayerControls" IsVisible="{Binding IsPlayerViewExpanded}">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="1*" />
+        <ColumnDefinition Width="1.15*" />
+      </Grid.ColumnDefinitions>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="1*" />
+        <RowDefinition Height="1*" />
+        <RowDefinition Height="1*" />
+
+      </Grid.RowDefinitions>
+
+      <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Margin="5,0,0,0">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="1*" />
+          <ColumnDefinition Width="1*" />
+          <ColumnDefinition Width="1*" />
+          <ColumnDefinition Width="1.4*" />
+        </Grid.ColumnDefinitions>
+        
+        <Button Grid.Column="0" 
+                VerticalContentAlignment="Center"
+                x:Name="PlayAction" 
+                Margin="0, 5, 0, 0" 
+                Content="{Binding PlayButtonText}" 
+                Width="75" 
+                Height="32" 
+                Command="{Binding PlayTtsCommand}"
+                IsEnabled="{Binding CanPlay}"
+                HorizontalContentAlignment="Center"/>
+        <Button Grid.Column="1"
+                VerticalContentAlignment="Center"
+                Margin="8, 5, 0, 0" 
+                Content="Stop" 
+                Height="32" 
+                Foreground="Black"
+                IsEnabled="{Binding CanStop}"
+                Command="{Binding StopTtsCommand}"/>
+        <Slider Grid.Row="0" Grid.Column="2" 
+                Margin="0,-10,2,0" 
+                HorizontalAlignment="Stretch" 
+                VerticalAlignment="Top" 
+                Maximum="100" 
+                Value="{Binding Volume}" 
+                SmallChange="1"
+                TickFrequency="1"
+                TickPlacement="None"
+                IsEnabled="{Binding CanPlay}"
+                />
+        <Slider Grid.Row="0" Grid.Column="3" 
+                Margin="2, -10, 5, 0" 
+                HorizontalAlignment="Stretch" 
+                VerticalAlignment="Top" 
+                Value="{Binding Rate}" 
+                Minimum="0.75" 
+                Maximum="5" 
+                Ticks="0.75, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3" 
+                TickFrequency="0.1" 
+                TickPlacement="None" 
+                IsSnapToTickEnabled="True" 
+                IsEnabled="{Binding CanPlay}"
+                />
+        <TextBlock Grid.Row="0" Grid.Column="2" 
+                   Margin="-2, 28, 0, 0" 
+                   x:Name="Volumelbl" 
+                   Text="{Binding VolumeStatus}" 
+                   HorizontalAlignment="Left" VerticalAlignment="Top"
+                   FontSize="12"/>
+        <TextBlock Grid.Row="0" Grid.Column="3" 
+                   Margin="10, 28, 0, 0" 
+                   x:Name="Ratelbl" 
+                   Text="{Binding RateStatus}" 
+                   HorizontalAlignment="Left" VerticalAlignment="Top"
+                   FontSize="12"/>
+      </Grid>
+      <Button Grid.Row="1" Grid.Column="0" 
+              Content="Convert to File" 
+              Margin="5,10,0,0" 
+              HorizontalAlignment="Left" VerticalAlignment="Top" 
+              VerticalContentAlignment="Center"
+              Height="32"
+              Width="126"
+              IsEnabled="{Binding CanPlay}"
+              Command="{Binding SaveTtsCommand}"
+              CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=StorageProvider}"/>
+      <ComboBox ItemsSource="{Binding VoiceList}"
+                Grid.Row="1" Grid.Column="1" 
+                SelectedValue="{Binding VoiceName}"
+                HorizontalAlignment="Left" VerticalAlignment="Top"
+                Height="29"
+                Margin="0,10,5,0"
+                Width="166"
+                IsEnabled="{Binding CanPlay}"/>
+      <Grid Grid.Row="2"  Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,0">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="40" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <CheckBox Grid.Column="0" Grid.Row="0" Margin="10,0,0,0"
+                  VerticalAlignment="Center"
+                  IsChecked="{Binding IsClipboardMonitoringEnabled}"
+                  Content="Monitor Clipboard"/>
+        <Button Grid.Column="1" Content="Set" 
+                Width="40" Margin="10,0,0,0"
+                Command="{Binding SetTtsVoiceCommand}" 
+                CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=StorageProvider}"/>
+        <TextBlock Grid.Column="2" Margin="5,0,10,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Text="{Binding SampleVoice}" />
+      </Grid>
+    </Grid>
+  </DockPanel>
+</Window>

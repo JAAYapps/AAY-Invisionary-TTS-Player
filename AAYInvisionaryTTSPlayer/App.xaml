@@ -1,0 +1,24 @@
+﻿<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:AAYInvisionaryTTSPlayer"
+             x:Class="AAYInvisionaryTTSPlayer.App"
+             RequestedThemeVariant="Light">
+    <Application.DataTemplates>
+        <local:ViewLocator/>
+    </Application.DataTemplates>
+
+	<Application.Resources>
+		<StreamGeometry x:Key="close">M5.29289 5.29289C5.68342 4.90237 6.31658 4.90237 6.70711 5.29289L12 10.5858L17.2929 5.29289C17.6834 4.90237 18.3166 4.90237 18.7071 5.29289C19.0976 5.68342 19.0976 6.31658 18.7071 6.70711L13.4142 12L18.7071 17.2929C19.0976 17.6834 19.0976 18.3166 18.7071 18.7071C18.3166 19.0976 17.6834 19.0976 17.2929 18.7071L12 13.4142L6.70711 18.7071C6.31658 19.0976 5.68342 19.0976 5.29289 18.7071C4.90237 18.3166 4.90237 17.6834 5.29289 17.2929L10.5858 12L5.29289 6.70711C4.90237 6.31658 4.90237 5.68342 5.29289 5.29289Z</StreamGeometry>
+		<StreamGeometry x:Key="MinimizeIcon">M13.7197 17.7803C14.0126 18.0732 14.4874 18.0732 14.7803 17.7803C15.0732 17.4874 15.0732 17.0126 14.7803 16.7197L12.2803 14.2197C11.9874 13.9268 11.5126 13.9268 11.2197 14.2197L8.71967 16.7197C8.42678 17.0126 8.42678 17.4874 8.71967 17.7803C9.01256 18.0732 9.48744 18.0732 9.78033 17.7803L11 16.5607L11 21.25C11 21.6642 11.3358 22 11.75 22C12.1642 22 12.5 21.6642 12.5 21.25V16.5607L13.7197 17.7803Z M4 11.75C4 11.3358 4.33579 11 4.75 11H19.25C19.6642 11 20 11.3358 20 11.75C20 12.1642 19.6642 12.5 19.25 12.5H4.75C4.33579 12.5 4 12.1642 4 11.75Z M12.5 2.75C12.5 2.33579 12.1642 2 11.75 2C11.3358 2 11 2.33579 11 2.75V6.93934L9.78033 5.71967C9.48744 5.42678 9.01256 5.42678 8.71967 5.71967C8.42678 6.01256 8.42678 6.48744 8.71967 6.78033L11.2197 9.28033C11.2916 9.35224 11.3745 9.40649 11.4629 9.44309C11.5513 9.47976 11.6483 9.5 11.75 9.5C11.9563 9.5 12.1431 9.41671 12.2787 9.28192C12.2793 9.28139 12.2798 9.28086 12.2803 9.28033 M12.2803 9.28033L14.7803 6.78033C15.0732 6.48744 15.0732 6.01256 14.7803 5.71967C14.4874 5.42678 14.0126 5.42678 13.7197 5.71967L12.5 6.93934V2.75</StreamGeometry>
+		<StreamGeometry x:Key="RestoreIcon">M13.7197 5.78033C14.0126 6.07322 14.4874 6.07322 14.7803 5.78033C15.0732 5.48744 15.0732 5.01256 14.7803 4.71967L12.2803 2.21967C11.9874 1.92678 11.5126 1.92678 11.2197 2.21967L8.71967 4.71967C8.42678 5.01256 8.42678 5.48744 8.71967 5.78033C9.01256 6.07322 9.48744 6.07322 9.78033 5.78033L11 4.56066L11 8.75C11 9.16421 11.3358 9.5 11.75 9.5C12.1642 9.5 12.5 9.16421 12.5 8.75V4.56066L13.7197 5.78033Z M4 11.75C4 11.3358 4.33579 11 4.75 11H19.25C19.6642 11 20 11.3358 20 11.75C20 12.1642 19.6642 12.5 19.25 12.5H4.75C4.33579 12.5 4 12.1642 4 11.75Z M12.5 14.75C12.5 14.3358 12.1642 14 11.75 14C11.3358 14 11 14.3358 11 14.75V19.4393L9.78033 18.2197C9.48744 17.9268 9.01256 17.9268 8.71967 18.2197C8.42678 18.5126 8.42678 18.9874 8.71967 19.2803L11.2197 21.7803C11.5126 22.0732 11.9874 22.0732 12.2803 21.7803L14.7803 19.2803C15.0732 18.9874 15.0732 18.5126 14.7803 18.2197C14.4874 17.9268 14.0126 17.9268 13.7197 18.2197L12.5 19.4393V14.75Z</StreamGeometry>
+	</Application.Resources>
+	
+     <Application.Styles>
+		 <FluentTheme>
+       <FluentTheme.Palettes>
+         <ColorPaletteResources x:Key="Light" Accent="#ffcc4d11" AltHigh="White" AltLow="White" AltMedium="#ff2f7bad" AltMediumHigh="White" AltMediumLow="#ff7cbee0" BaseHigh="Black" BaseLow="#ff7cbee0" BaseMedium="#ff3282a8" BaseMediumHigh="#ff005a83" BaseMediumLow="#ff196e96" ChromeAltLow="#ff005a83" ChromeBlackHigh="Black" ChromeBlackLow="#ff7cbee0" ChromeBlackMedium="#ff005a83" ChromeBlackMediumLow="#ff3282a8" ChromeDisabledHigh="#ff7cbee0" ChromeDisabledLow="#ff3282a8" ChromeGray="#ff196e96" ChromeHigh="#ff7cbee0" ChromeLow="#ffc1e9fe" ChromeMedium="#ffb3e0f8" ChromeMediumLow="#ffc1e9fe" ChromeWhite="White" ListLow="#ffb3e0f8" ListMedium="#ff7cbee0" RegionColor="#ffcfeaff" />
+         <ColorPaletteResources x:Key="Dark" Accent="#ffcc4d11" AltHigh="Black" AltLow="Black" AltMedium="#ff7cbee0" AltMediumHigh="Black" AltMediumLow="#ff2f7bad" BaseHigh="White" BaseLow="#ff2f7bad" BaseMedium="#ff8dbfdf" BaseMediumHigh="#ffa5d0ec" BaseMediumLow="#ff5e9dc6" ChromeAltLow="#ffa5d0ec" ChromeBlackHigh="Black" ChromeBlackLow="#ffa5d0ec" ChromeBlackMedium="Black" ChromeBlackMediumLow="Black" ChromeDisabledHigh="#ff2f7bad" ChromeDisabledLow="#ff8dbfdf" ChromeGray="#ff76aed3" ChromeHigh="#ff76aed3" ChromeLow="#ff093b73" ChromeMedium="#ff134b82" ChromeMediumLow="#ff266b9f" ChromeWhite="White" ListLow="#ff134b82" ListMedium="#ff2f7bad" RegionColor="#ff0d2644" />
+       </FluentTheme.Palettes>
+     </FluentTheme>
+    </Application.Styles> 
+</Application>

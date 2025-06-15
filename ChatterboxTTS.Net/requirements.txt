@@ -1,0 +1,8 @@
+numpy
+torch
+torchaudio
+gradio
+chatterbox-tts
+stable-ts
+librosa
+peft
