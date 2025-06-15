@@ -1,8 +1,10 @@
 # AAY Invisionary TTS Player
-
+![AAY Invisionary Player Logo](https://github.com/JAAYapps/AAY-Invisionary-TTS-Player/blob/main/Screenshot.png)
 *(The spiritual successor to the AAY Text To Speech Player)*
 
 A modern, cross-platform Text-to-Speech (TTS) assistive technology tool designed for visually impaired users. Built with .NET 8 and Avalonia UI, this application leverages powerful AI models to provide high-quality, natural-sounding speech with real-time word highlighting.
+
+https://github.com/JAAYapps/AAY-Invisionary-TTS-Player/blob/main/Screenshot.png
 
 ---
 
