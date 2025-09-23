@@ -1,4 +1,5 @@
-﻿using CSnakes.Runtime;
+﻿using System.Diagnostics;
+using CSnakes.Runtime;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Runtime.CompilerServices;
@@ -10,8 +11,8 @@ namespace ChatterboxTTSNet;
 public static class ChatterboxTTSFactory
 {
     private static IPythonEnvironment? _env;
-    private static PyObject model;
-    private static IGradioTtsApp module;
+    private static PyObject model = null!;
+    private static ITtsBackend module = null!;
     
     public static void Initialize()
     {
@@ -24,7 +25,7 @@ public static class ChatterboxTTSFactory
         builder.Services
             .WithPython()
             .WithHome(home)
-            .FromRedistributable("3.12")
+            .FromRedistributable("3.11")
             .WithVirtualEnvironment(pythonBinPath)
             .WithPipInstaller("requirements.txt");
         Console.WriteLine("Path:" + builder.Environment.ContentRootPath); 
@@ -37,21 +38,30 @@ public static class ChatterboxTTSFactory
         }
 
         Console.WriteLine($"Using Python Version: {_env.Version}");
-        module = _env.GradioTtsApp();
+        module = _env.TtsBackend();
         model = module.LoadModel();
     }
 
-    public static (Int64 sampleRate, short[] audioSamples, List<WordTimestamp> timeStamp) GenerateAudio(string text, string wavInput)
+    public static (Int64 sampleRate, short[]? audioSamples, List<WordTimestamp> timeStamp) GenerateAudio(string text, string wavInput,
+        double exaggeration = 0.5,
+        double temperature = 0.8,
+        double cfgWeight = 0.8,
+        double minP = 0.05,
+        double topP = 1.0,
+        double repetitionPenalty = 1.2,
+        int seed = 0)
     {
         using PyObject textObj = PyObject.From(text);
         using PyObject wavInputObj = PyObject.From(wavInput);
-        using PyObject exaggerationObj = PyObject.From(0.5);
-        using PyObject temperatureObj = PyObject.From(0.5);
-        using PyObject seedNumObj = PyObject.From(0);
-        using PyObject cfgwObj = PyObject.From(0.8);
-
-        ITuple result = module.Generate(
-            model, textObj, wavInputObj, exaggerationObj, temperatureObj, seedNumObj, cfgwObj);
+        using PyObject exaggerationObj = PyObject.From(exaggeration);
+        using PyObject temperatureObj = PyObject.From(temperature);
+        using PyObject seedNumObj = PyObject.From(seed);
+        using PyObject cfgwObj = PyObject.From(cfgWeight);
+        using PyObject minPObj = PyObject.From(minP);
+        using PyObject topPObj = PyObject.From(topP);
+        using PyObject repetitionPenaltyObj = PyObject.From(repetitionPenalty);
+        
+        ITuple result = module.Generate(model, textObj, wavInputObj, exaggerationObj, temperatureObj, seedNumObj, cfgwObj, minPObj, topPObj, repetitionPenaltyObj);
 
         // --- Correctly Unpack the Python Tuple using the Buffer Protocol ---
 
@@ -73,11 +83,12 @@ public static class ChatterboxTTSFactory
         string numpyDtype = "float32";//dtypeName.As<string>();
         Console.WriteLine($"Python returned a NumPy array with dtype: {numpyDtype}");
         
-        short[] audioSamples;
+        short[]? audioSamples;
         // Handle the data based on its actual type
         if (numpyDtype == "float32")
         {
             Console.WriteLine("Data is float32. Converting to int16 for SFML...");
+            Debug.Assert(pyAudioNumpyArray != null, nameof(pyAudioNumpyArray) + " != null");
             ReadOnlySpan<float> floatSamplesEnumerable = pyAudioNumpyArray.AsFloatReadOnlySpan();
             float[] floatSamples = floatSamplesEnumerable.ToArray();
             audioSamples = new short[floatSamples.Length];
@@ -89,20 +100,20 @@ public static class ChatterboxTTSFactory
         else if (numpyDtype == "int16")
         {
             Console.WriteLine("Data is already int16. Converting directly...");
-            audioSamples = ((PyObject)pyAudioNumpyArray).As<short[]>();
+            audioSamples = ((PyObject)pyAudioNumpyArray!)?.As<short[]>();
         }
         else
         {
             throw new NotSupportedException($"Unsupported NumPy dtype '{numpyDtype}' for audio conversion.");
         }
         
-        Console.WriteLine($"Successfully created {audioSamples.Length} audio samples at {sampleRate} Hz.");
+        Console.WriteLine($"Successfully created {audioSamples?.Length} audio samples at {sampleRate} Hz.");
 
         return (sampleRate, audioSamples, GetTimestampsFromBuffer(audioSamples, sampleRate, text));
     }
     
     // NEW METHOD: Calls the Python script with the in-memory buffer.
-    public static List<WordTimestamp> GetTimestampsFromBuffer(short[] audioSamples, long sampleRate, string text)
+    public static List<WordTimestamp> GetTimestampsFromBuffer(short[]? audioSamples, long sampleRate, string text)
     {
         if (_env == null)
         {
@@ -112,7 +123,7 @@ public static class ChatterboxTTSFactory
         var module = _env.Aligner(); 
         
         List<byte> audioSamplesToLong = new List<byte>();
-        for (int i = 0; i < audioSamples.Length; i++)
+        for (int i = 0; i < audioSamples?.Length; i++)
             audioSamplesToLong.AddRange(FromShort(audioSamples[i]));
         
         string jsonResult = module.GetWordTimestampsFromBuffer(audioSamplesToLong.ToArray(), sampleRate, text);
