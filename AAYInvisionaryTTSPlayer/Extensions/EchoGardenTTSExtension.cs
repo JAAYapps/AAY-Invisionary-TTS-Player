@@ -2,6 +2,8 @@
 using System.Buffers;
 using System.Collections.Generic;
 using AAYInvisionaryTTSPlayer.Models;
+using AAYInvisionaryTTSPlayer.Utilities;
+using DynamicData;
 using MessagePack;
 using MessagePack.Formatters;
 using MessagePack.Resolvers;
@@ -76,11 +78,15 @@ namespace AAYInvisionaryTTSPlayer.Extensions
 
                 try
                 {
-                    audio.audioChannels.Add(new SFML.Audio.SoundBuffer(audioData.ToArray(), (uint)channels, (uint)audio.sampleRate));
+                    audio.AudioData.AddRange(ByteManager.ShortArrayToByteArray(audioData.ToArray()));
+                    audio.ChannelCount = channels; 
+                    audio.sampleRate = audio.sampleRate;
                 }
                 catch (Exception)
                 {
-                    audio.audioChannels.Add(new SFML.Audio.SoundBuffer(new short []{ 0, 0, 0, 0}, 1, 44100));
+                    audio.AudioData.Add(new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 });
+                    audio.ChannelCount = 1;
+                    audio.sampleRate = 44100;
                     Console.WriteLine($"The conversion failed and had to give a blank. Here is the data that was seen. {audioData.ToArray()}");
                 }
                 return audio;

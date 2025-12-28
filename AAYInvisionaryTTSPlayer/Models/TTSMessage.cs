@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace AAYInvisionaryTTSPlayer.Models
 {
@@ -6,7 +7,10 @@ namespace AAYInvisionaryTTSPlayer.Models
     {
         public class Audio
         {
-            public List<SFML.Audio.SoundBuffer> audioChannels { get; set; } = new List<SFML.Audio.SoundBuffer>();
+            public byte[] AudioData { get; set; } = Array.Empty<byte>();
+            
+            public int ChannelCount { get; set; } = 1; 
+            
             public int sampleRate { get; set; }
         }
 

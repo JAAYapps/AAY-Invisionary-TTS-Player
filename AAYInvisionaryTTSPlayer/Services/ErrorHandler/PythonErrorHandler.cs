@@ -8,7 +8,6 @@ using AAYInvisionaryTTSPlayer.Services.FallbackTtsService;
 using AAYInvisionaryTTSPlayer.Services.PlayerService;
 using AAYInvisionaryTTSPlayer.Utilities;
 using ChatterboxTTSNet;
-using SFML.Audio;
 
 namespace AAYInvisionaryTTSPlayer.Services.ErrorHandler;
 
@@ -18,6 +17,9 @@ public class PythonErrorHandler(IPlayer player, IFallbackTtsService fallbackTts)
     {
         switch (index)
         {
+            case 0:
+                Console.WriteLine($"--- ERROR: {optionalText}");
+                return false;
             case 1:
                 await HandleTtsInitializationErrorAsync(new Exception(optionalText));
                 return true;
@@ -104,19 +106,18 @@ public class PythonErrorHandler(IPlayer player, IFallbackTtsService fallbackTts)
     {
         var audioData = EmbeddedFetcher.ExtractResource(fileName);
         if (audioData == null) return;
-
-        var soundBuffer = new SoundBuffer(audioData);
         
         player.AddToQueue(new TTSResult
         {
-            AudioBuffer = new SFML.Audio.SoundBuffer(EmbeddedFetcher.ExtractResource(fileName))
+            AudioBuffer = audioData,
+            MessageType = "File"
         });
 
         // Wait for the prompt to start playing.
         await Task.Delay(100); 
 
         // Wait for the prompt to finish playing without blocking the thread.
-        while (player.GetPlayStatus() == SoundStatus.Playing)
+        while (player.GetPlayStatus() == IPlayer.SoundStatus.Playing)
         {
             await Task.Delay(100);
         }

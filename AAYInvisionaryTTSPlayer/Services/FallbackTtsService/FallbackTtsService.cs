@@ -1,5 +1,4 @@
 #nullable enable
-using SFML.Audio;
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
@@ -50,7 +49,7 @@ public class FallbackTtsService : IFallbackTtsService
             if (wordAudio is { Length: > 4 })
             {
                 // If we found the whole word, play it.
-                player.AddToQueue(new TTSResult{AudioBuffer = new SoundBuffer(wordAudio), MessageType = "Internal", WordTimestamps = new List<WordTimestamp>()});
+                player.AddToQueue(new TTSResult{AudioBuffer = wordAudio, MessageType = "File", WordTimestamps = new List<WordTimestamp>()});
             }
             else
             {
@@ -76,9 +75,9 @@ public class FallbackTtsService : IFallbackTtsService
         var spellingPromptAudio = EmbeddedFetcher.ExtractResource("FallbackWords.spelling.ogg");
         if (spellingPromptAudio != null)
         {
-            player.AddToQueue(new TTSResult{ AudioBuffer = new SoundBuffer(spellingPromptAudio), MessageType = "Internal", WordTimestamps = new List<WordTimestamp>()});
+            player.AddToQueue(new TTSResult{ AudioBuffer = spellingPromptAudio, MessageType = "File", WordTimestamps = new List<WordTimestamp>()});
             await Task.Delay(200);
-            while (player.GetPlayStatus() == SoundStatus.Playing) { await Task.Delay(100); }
+            while (player.GetPlayStatus() == IPlayer.SoundStatus.Playing) { await Task.Delay(100); }
         }
 
         foreach (char c in text)
@@ -109,9 +108,9 @@ public class FallbackTtsService : IFallbackTtsService
 
             if (letterAudio != null)
             {
-                player.AddToQueue(new TTSResult{ AudioBuffer = new SoundBuffer(letterAudio), MessageType = "Internal", WordTimestamps = new List<WordTimestamp>()});
+                player.AddToQueue(new TTSResult{ AudioBuffer = letterAudio, MessageType = "File", WordTimestamps = new List<WordTimestamp>()});
                 // await Task.Delay(20); // Shorter delay between letters
-                while (player.GetPlayStatus() == SoundStatus.Playing) { await Task.Delay(50); }
+                while (player.GetPlayStatus() == IPlayer.SoundStatus.Playing) { await Task.Delay(50); }
             }
         }
     }

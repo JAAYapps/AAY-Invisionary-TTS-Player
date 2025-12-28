@@ -45,8 +45,8 @@ public class PythonBackendTests(ITestOutputHelper output)
         
         Assert.True(result != null, "The TTS Service returned a null result.");
         Assert.Equal("Success", result.MessageType); // Assuming your Python backend sets this
-        Assert.NotEmpty(result.AudioBuffer.Samples);
-        Assert.True(result.AudioBuffer.SampleRate > 0);
+        Assert.NotEmpty(result.AudioBuffer);
+        Assert.True(result.BitRate > 0);
         Assert.NotEmpty(result.WordTimestamps);
         Assert.Equal("This", result.WordTimestamps.First().Word, ignoreCase: true);
         output.WriteLine("--- Test Passed ---");

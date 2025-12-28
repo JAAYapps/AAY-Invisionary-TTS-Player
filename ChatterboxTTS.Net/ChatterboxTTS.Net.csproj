@@ -10,9 +10,11 @@
 
     <ItemGroup>
       <PackageReference Include="CSFML" Version="2.6.1" />
-      <PackageReference Include="CSnakes.Runtime" Version="1.2.1" />
+      <PackageReference Include="CSnakes.Runtime" Version="1.0.35" />
     </ItemGroup>
-
+    <ItemGroup>
+        <TrimmerRootAssembly Include="CSnakes.Runtime" />
+    </ItemGroup>
     <ItemGroup>
       <Content Include="chatterbox\*.*">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

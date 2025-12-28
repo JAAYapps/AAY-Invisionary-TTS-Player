@@ -20,7 +20,6 @@ using AAYInvisionaryTTSPlayer.Views;
 using Avalonia.Controls;
 using Avalonia.Input.Platform;
 using Microsoft.Extensions.Configuration;
-using SFML.Audio;
 
 namespace AAYInvisionaryTTSPlayer;
 
@@ -60,8 +59,7 @@ public class App : Application
         services.AddSingleton<IConfiguration>(configuration);
         services.Configure<UserSettings>(configuration.GetSection("UserSettings"));
         
-        services.AddTransient<EchoGardenPlayer>();
-        services.AddTransient<ChatterboxPlayer>();
+        services.AddTransient<SilkNetPlayer>();
         
         var chosenBackend = configuration.GetValue<string>("UserSettings:ChosenBackend");
         
@@ -86,8 +84,7 @@ public class App : Application
         {
             return chosenBackend switch
             {
-                "EchoGarden" => provider.GetRequiredService<EchoGardenPlayer>(),
-                "Python" => provider.GetRequiredService<ChatterboxPlayer>(),
+                "EchoGarden" or "Python" => provider.GetRequiredService<SilkNetPlayer>(),
                 // If the config is invalid or missing, we throw a specific exception.
                 _ => throw new BackendNotConfiguredException("No valid TTS backend was specified in appsettings.json.")
             };
@@ -162,12 +159,12 @@ public class App : Application
             if (audioData == null) return;
 
             // Create a temporary player instance just for this message.
-            using var soundBuffer = new SoundBuffer(audioData);
-            using var sound = new Sound(soundBuffer);
+            using var sound = new SilkNetPlayer();
+            sound.AddToQueue(new TTSResult() {MessageType = "File", AudioBuffer =  audioData, ChannelCount = 1, BitRate = 44100});
             sound.Play();
             
             // Wait for the sound to finish before exiting.
-            while (sound.Status == SoundStatus.Playing)
+            while (sound.GetPlayStatus() == IPlayer.SoundStatus.Playing)
             {
                 System.Threading.Thread.Sleep(100);
             }

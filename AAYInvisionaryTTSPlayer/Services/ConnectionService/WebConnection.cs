@@ -14,7 +14,6 @@ using AAYInvisionaryTTSPlayer.Extensions;
 using AAYInvisionaryTTSPlayer.Models;
 using AAYInvisionaryTTSPlayer.Services.ErrorHandler;
 using ChatterboxTTSNet;
-using SFML.Audio;
 using static AAYInvisionaryTTSPlayer.Extensions.EchoGardenTTSExtension;
 
 namespace AAYInvisionaryTTSPlayer.Services.ConnectionService
@@ -98,7 +97,9 @@ namespace AAYInvisionaryTTSPlayer.Services.ConnectionService
 
                     var result = new TTSResult
                     {
-                        AudioBuffer = complexMessage.audio.audioChannels.FirstOrDefault() ?? new SoundBuffer(new short[0], 1, 44100),
+                        AudioBuffer = complexMessage.audio.AudioData ?? new byte[] {0,0,0,0,0,0,0,0},
+                        ChannelCount = complexMessage.audio.ChannelCount,
+                        BitRate = complexMessage.audio.sampleRate,
                         WordTimestamps = flatTimestamps,
                         MessageType = complexMessage.messageType
                     };
@@ -232,8 +233,9 @@ namespace AAYInvisionaryTTSPlayer.Services.ConnectionService
 
                 return new TTSResult
                 {
-                    AudioBuffer = message.audio.audioChannels.FirstOrDefault() ??
-                                  new SoundBuffer(new short[0], 1, 44100),
+                    AudioBuffer = message.audio.AudioData ?? new byte[]  {0,0,0,0,0,0,0,0},
+                    ChannelCount = message.audio.ChannelCount,
+                    BitRate =  message.audio.sampleRate,
                     WordTimestamps = flatWordTimestamps,
                     MessageType = message.messageType,
                 };

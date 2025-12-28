@@ -6,7 +6,6 @@ using AAYInvisionaryTTSPlayer.Models;
 using AAYInvisionaryTTSPlayer.Services.FallbackTtsService;
 using AAYInvisionaryTTSPlayer.Services.PlayerService;
 using AAYInvisionaryTTSPlayer.Utilities;
-using SFML.Audio;
 
 namespace AAYInvisionaryTTSPlayer.Services.ErrorHandler
 {
@@ -142,18 +141,18 @@ namespace AAYInvisionaryTTSPlayer.Services.ErrorHandler
         {
             var audioData = EmbeddedFetcher.ExtractResource(fileName);
             if (audioData == null) return;
-
-            var soundBuffer = new SoundBuffer(audioData);
+            
             player.AddToQueue(new TTSResult
             {
-                AudioBuffer = soundBuffer
+                AudioBuffer = audioData,
+                MessageType = "File"
             });
 
             // Wait for the prompt to start playing.
             await Task.Delay(100); 
 
             // Wait for the prompt to finish playing without blocking the thread.
-            while (player.GetPlayStatus() is SoundStatus.Playing or SoundStatus.Paused)
+            while (player.GetPlayStatus() is IPlayer.SoundStatus.Playing or IPlayer.SoundStatus.Paused)
             {
                 await Task.Delay(100);
             }

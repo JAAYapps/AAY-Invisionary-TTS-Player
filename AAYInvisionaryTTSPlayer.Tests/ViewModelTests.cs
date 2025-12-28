@@ -28,11 +28,11 @@ public class ViewModelTests
         
         mockClipboard.Setup(c => c.GetClipboard()).ReturnsAsync(new[] { "hello world" });
         
-        var fakeTtsResult = new TTSResult { MessageType = "Success", AudioBuffer = new SFML.Audio.SoundBuffer(new short[1], 1, 24000) };
+        var fakeTtsResult = new TTSResult { MessageType = "Stream", AudioBuffer = new byte[2], ChannelCount = 1, BitRate = 24000 };
         mockTtsService.Setup(t => t.GenerateSpeechAsync(It.IsAny<string>(), It.IsAny<string>()))
                       .ReturnsAsync(fakeTtsResult);
         
-        mockPlayer.Setup(p => p.GetPlayStatus()).Returns(SFML.Audio.SoundStatus.Stopped);
+        mockPlayer.Setup(p => p.GetPlayStatus()).Returns(IPlayer.SoundStatus.Stopped);
         
         var viewModel = new MainWindowViewModel(
             mockPlayer.Object,

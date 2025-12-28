@@ -1,7 +1,6 @@
 ﻿#nullable enable
 using System.Collections.Generic;
 using Avalonia.Platform.Storage;
-using SFML.Audio;
 using System.Threading.Tasks;
 
 namespace AAYInvisionaryTTSPlayer.Services.FileService

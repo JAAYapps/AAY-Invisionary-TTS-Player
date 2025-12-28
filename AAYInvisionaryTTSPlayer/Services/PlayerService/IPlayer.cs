@@ -4,12 +4,18 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using AAYInvisionaryTTSPlayer.Models;
-using SFML.Audio;
 
 namespace AAYInvisionaryTTSPlayer.Services.PlayerService
 {
     public interface IPlayer
     {
+        public enum SoundStatus
+        {
+            Stopped,
+            Playing,
+            Paused
+        }
+        
         void AddToQueue(TTSResult message);
 
         bool Stop();

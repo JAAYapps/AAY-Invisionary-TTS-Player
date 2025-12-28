@@ -42,7 +42,8 @@ public static class ChatterboxTTSFactory
         model = module.LoadModel();
     }
 
-    public static (Int64 sampleRate, short[]? audioSamples, List<WordTimestamp> timeStamp) GenerateAudio(string text, string wavInput,
+    public static (Int64 sampleRate, short[]? audioSamples, List<WordTimestamp> timeStamp) GenerateAudio(string text, short[] wavInput,
+        long sampleRt = 24000,
         double exaggeration = 0.5,
         double temperature = 0.8,
         double cfgWeight = 0.8,
@@ -52,7 +53,10 @@ public static class ChatterboxTTSFactory
         int seed = 0)
     {
         using PyObject textObj = PyObject.From(text);
-        using PyObject wavInputObj = PyObject.From(wavInput);
+        int[] wavInputAsInts = Array.ConvertAll(wavInput, item => (int)item);
+        using PyObject sampleRateObj = PyObject.From(sampleRt); 
+        using PyObject wavInputObj = PyObject.From(wavInputAsInts);
+        //using PyObject wavInputObj = PyObject.From(wavInput);
         using PyObject exaggerationObj = PyObject.From(exaggeration);
         using PyObject temperatureObj = PyObject.From(temperature);
         using PyObject seedNumObj = PyObject.From(seed);
@@ -60,9 +64,11 @@ public static class ChatterboxTTSFactory
         using PyObject minPObj = PyObject.From(minP);
         using PyObject topPObj = PyObject.From(topP);
         using PyObject repetitionPenaltyObj = PyObject.From(repetitionPenalty);
-        
-        ITuple result = module.Generate(model, textObj, wavInputObj, exaggerationObj, temperatureObj, seedNumObj, cfgwObj, minPObj, topPObj, repetitionPenaltyObj);
-
+        ITuple result;
+        if (wavInput.Length > 0)
+            result = module.GenerateFromBuffer(model, textObj, wavInputObj, sampleRateObj, exaggerationObj, temperatureObj, seedNumObj, cfgwObj, minPObj, topPObj, repetitionPenaltyObj);
+        else
+            result = module.Generate(model, textObj, wavInputObj, exaggerationObj, temperatureObj, seedNumObj, cfgwObj, minPObj, topPObj, repetitionPenaltyObj);
         // --- Correctly Unpack the Python Tuple using the Buffer Protocol ---
 
         /*if (!(result.As<ITuple>().GetType() == typeof(ITuple)) || result.As<ITuple>().Length != 2)
@@ -87,7 +93,7 @@ public static class ChatterboxTTSFactory
         // Handle the data based on its actual type
         if (numpyDtype == "float32")
         {
-            Console.WriteLine("Data is float32. Converting to int16 for SFML...");
+            Console.WriteLine("Data is float32. Converting to int16...");
             Debug.Assert(pyAudioNumpyArray != null, nameof(pyAudioNumpyArray) + " != null");
             ReadOnlySpan<float> floatSamplesEnumerable = pyAudioNumpyArray.AsFloatReadOnlySpan();
             float[] floatSamples = floatSamplesEnumerable.ToArray();
@@ -143,9 +149,9 @@ public static class ChatterboxTTSFactory
 
     public static void Uninitialize()
     {
-        model.Close();
-        model.Dispose();
-        module.Dispose();
+        model?.Close();
+        model?.Dispose();
+        module?.Dispose();
         _env?.Dispose();
     }
 }

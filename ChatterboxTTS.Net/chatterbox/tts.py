@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
+import numpy as np
 import librosa
 import torch
 import perth
@@ -263,6 +264,92 @@ class ChatterboxTTS:
 
             speech_tokens = speech_tokens.to(self.device)
 
+            wav, _ = self.s3gen.inference(
+                speech_tokens=speech_tokens,
+                ref_dict=self.conds.gen,
+            )
+            wav = wav.squeeze(0).detach().cpu().numpy()
+            watermarked_wav = self.watermarker.apply_watermark(wav, sample_rate=self.sr)
+        return torch.from_numpy(watermarked_wav).unsqueeze(0)
+
+    # NEW METHOD
+    def prepare_conditionals_from_buffer(self, wav_buffer, orig_sr, exaggeration=0.5):
+        ## wav_buffer is a NumPy array, orig_sr is its sample rate.
+        wav_buffer = np.array(wav_buffer, dtype=np.float32) / 32767.0
+        # Step 1: Resample the buffer to the required sample rates, replacing librosa.load()
+        s3gen_ref_wav = librosa.resample(wav_buffer, orig_sr=orig_sr, target_sr=S3GEN_SR)
+        ref_16k_wav = librosa.resample(s3gen_ref_wav, orig_sr=S3GEN_SR, target_sr=S3_SR)
+
+        # The rest of this is copied directly from the original prepare_conditionals method
+        s3gen_ref_wav = s3gen_ref_wav[:self.DEC_COND_LEN]
+        s3gen_ref_dict = self.s3gen.embed_ref(s3gen_ref_wav, S3GEN_SR, device=self.device)
+
+        if plen := self.t3.hp.speech_cond_prompt_len:
+            s3_tokzr = self.s3gen.tokenizer
+            t3_cond_prompt_tokens, _ = s3_tokzr.forward([ref_16k_wav[:self.ENC_COND_LEN]], max_len=plen)
+            t3_cond_prompt_tokens = torch.atleast_2d(t3_cond_prompt_tokens).to(self.device)
+
+        ve_embed = torch.from_numpy(self.ve.embeds_from_wavs([ref_16k_wav], sample_rate=S3_SR))
+        ve_embed = ve_embed.mean(axis=0, keepdim=True).to(self.device)
+
+        t3_cond = T3Cond(
+            speaker_emb=ve_embed,
+            cond_prompt_speech_tokens=t3_cond_prompt_tokens,
+            emotion_adv=exaggeration * torch.ones(1, 1, 1),
+        ).to(device=self.device)
+        self.conds = Conditionals(t3_cond, s3gen_ref_dict)
+
+    # NEW METHOD
+    def generate_from_buffer(
+            self,
+            text,
+            audio_prompt_buffer,
+            audio_prompt_sr,
+            repetition_penalty=1.2,
+            min_p=0.05,
+            top_p=1.0,
+            exaggeration=0.5,
+            cfg_weight=0.5,
+            temperature=0.8,
+    ):
+        # This new method takes the audio buffer and its sample rate
+        self.prepare_conditionals_from_buffer(audio_prompt_buffer, audio_prompt_sr, exaggeration=exaggeration)
+
+        # The rest of this is copied directly from the original generate method
+        if exaggeration != self.conds.t3.emotion_adv[0, 0, 0]:
+            _cond: T3Cond = self.conds.t3
+            self.conds.t3 = T3Cond(
+                speaker_emb=_cond.speaker_emb,
+                cond_prompt_speech_tokens=_cond.cond_prompt_speech_tokens,
+                emotion_adv=exaggeration * torch.ones(1, 1, 1),
+            ).to(device=self.device)
+
+        text = punc_norm(text)
+        text_tokens = self.tokenizer.text_to_tokens(text).to(self.device)
+
+        if cfg_weight > 0.0:
+            text_tokens = torch.cat([text_tokens, text_tokens], dim=0)
+
+        sot = self.t3.hp.start_text_token
+        eot = self.t3.hp.stop_text_token
+        text_tokens = F.pad(text_tokens, (1, 0), value=sot)
+        text_tokens = F.pad(text_tokens, (0, 1), value=eot)
+
+        with torch.inference_mode():
+            speech_tokens = self.t3.inference(
+                t3_cond=self.conds.t3,
+                text_tokens=text_tokens,
+                max_new_tokens=1000,
+                temperature=temperature,
+                cfg_weight=cfg_weight,
+                repetition_penalty=repetition_penalty,
+                min_p=min_p,
+                top_p=top_p,
+            )
+            speech_tokens = speech_tokens[0]
+            speech_tokens = drop_invalid_tokens(speech_tokens)
+            speech_tokens = speech_tokens[speech_tokens < 6561]
+            speech_tokens = speech_tokens.to(self.device)
             wav, _ = self.s3gen.inference(
                 speech_tokens=speech_tokens,
                 ref_dict=self.conds.gen,

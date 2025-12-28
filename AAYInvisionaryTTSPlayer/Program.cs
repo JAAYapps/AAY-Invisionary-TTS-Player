@@ -1,8 +1,12 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using Avalonia;
+using Avalonia.Logging;
+using NAudio.Lame;
 
 namespace AAYInvisionaryTTSPlayer
 {
@@ -23,7 +27,7 @@ namespace AAYInvisionaryTTSPlayer
                         break;
                 }
             }
-
+            
             var builder = BuildAvaloniaApp();
             
             return builder.StartWithClassicDesktopLifetime(args);
@@ -34,6 +38,6 @@ namespace AAYInvisionaryTTSPlayer
             => AppBuilder.Configure<App>()
                 .UsePlatformDetect()
                 .WithInterFont()
-                .LogToTrace();
+                .LogToTrace(level: LogEventLevel.Verbose);
     }
 }

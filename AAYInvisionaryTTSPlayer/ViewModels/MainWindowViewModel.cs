@@ -7,7 +7,6 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Options;
-using SFML.Audio;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -22,6 +21,9 @@ using AAYInvisionaryTTSPlayer.Services.FileService;
 using AAYInvisionaryTTSPlayer.Services.PlayerService;
 using AAYInvisionaryTTSPlayer.Services.SettingsService;
 using AAYInvisionaryTTSPlayer.Services.TTSService;
+using NAudio.Lame;
+using NAudio.Wave;
+using OggVorbisEncoder;
 
 namespace AAYInvisionaryTTSPlayer.ViewModels;
 
@@ -177,7 +179,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
             clipboardMonitorService.StartMonitoring(cts.Token);
         }
-        Console.WriteLine("Populate voice data");
+        
         PopulateVoices(settings.ChosenBackend != "EchoGarden");
         
         CustomVoice = settings.ChosenBackend != "EchoGarden";
@@ -250,7 +252,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 try
                 {
                     Console.WriteLine("TTS engine send.");
-                    loading = player!.GetPlayStatus() == SoundStatus.Stopped;
+                    loading = player!.GetPlayStatus() == IPlayer.SoundStatus.Stopped;
                     TTSResult message = await ttsService?.GenerateSpeechAsync(text, Voices[VoiceName] != "Python" ? Voices[VoiceName] : (sampleVoice ?? "Invalid"))!;
                     if (message.MessageType != "Failed")
                     {
@@ -303,7 +305,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     [RelayCommand/*(CanExecute = nameof(CanPlay))*/]
     private async Task PlayTtsAsync()
     {
-        if (player != null && player.GetPlayStatus() == SoundStatus.Stopped)
+        if (player != null && player.GetPlayStatus() == IPlayer.SoundStatus.Stopped)
         {
             stopped = false;
             
@@ -329,11 +331,11 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             // Any background processing can continue when the player starts playing.
             _ = CallTtsEngineAsync(clipboardText); 
         }
-        else if (player != null && player.GetPlayStatus() == SoundStatus.Playing)
+        else if (player != null && player.GetPlayStatus() == IPlayer.SoundStatus.Playing)
         {
             player.Pause();
         }
-        else if (player != null && player.GetPlayStatus() == SoundStatus.Paused)
+        else if (player != null && player.GetPlayStatus() == IPlayer.SoundStatus.Paused)
         {
             player.Play();
         }
@@ -343,7 +345,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private void StopTts()
     {
         stopped = true;
-        if (player != null && player.GetPlayStatus() != SoundStatus.Stopped)
+        if (player != null && player.GetPlayStatus() != IPlayer.SoundStatus.Stopped)
         {
             player.Stop();
             CanStop = false;
@@ -356,7 +358,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     {
         if (storageProvider is null) return; // Cannot save without it
         var file = await fileService?.LoadFileAsync(storageProvider)!;
-        if (file[0]?.Path.LocalPath is { } path)
+        if (file.Count > 0 && file[0]?.Path.LocalPath is { } path)
             SampleVoice = path;
         else
             SampleVoice = String.Empty;
@@ -366,7 +368,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private async Task SaveTtsAsync(IStorageProvider? storageProvider) // Pass the provider here
     {
         if (storageProvider is null) return; // Cannot save without it
-        if (player != null && player.GetPlayStatus() != SoundStatus.Stopped)
+        if (player != null && player.GetPlayStatus() != IPlayer.SoundStatus.Stopped)
         {
             player.Stop();
             CanStop = false;
@@ -378,14 +380,14 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             stopped = true;
             return;
         }
-        var audioSamples = new List<short>();
-        uint sampleRate = 0;
+        var allAudioBytes = new List<byte>();
+        int sampleRate = 0;
         foreach (var message in await CallTtsEngineAsync(clipboardText, true))
         {
             if (message.MessageType != "Failed")
             {
-                audioSamples.AddRange(message.AudioBuffer.Samples);
-                sampleRate = message.AudioBuffer.SampleRate;
+                allAudioBytes.AddRange(message.AudioBuffer);
+                sampleRate = message.BitRate;
             }
             else
             {
@@ -393,16 +395,107 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             }
         }
         stopped = true; 
-        if (audioSamples.Any() && sampleRate > 0)
+        if (allAudioBytes.Any() && sampleRate > 0)
         {
-            var soundBuffer = new SoundBuffer(audioSamples.ToArray(), 1, sampleRate);
             // Pass the storageProvider to the service method
             var file = await fileService?.SaveFileAsync(storageProvider)!;
             if (file?.Path.LocalPath is { } path)
-                soundBuffer.SaveToFile(path);
+            {
+                var rawData = allAudioBytes.ToArray();
+                var extension = Path.GetExtension(path).ToLower();
+
+                switch (extension)
+                {
+                    case ".mp3":
+                        SaveAsMp3(path, rawData, sampleRate);
+                        break;
+                    case ".ogg":
+                        SaveAsOgg(path, rawData, sampleRate);
+                        break;
+                    case ".wav":
+                    default:
+                        SaveAsWav(path, rawData, sampleRate);
+                        break;
+                }
+            }
         }
     }
 
+    private void SaveAsWav(string path, byte[] pcmData, int sampleRate)
+    {
+        var format = new WaveFormat(sampleRate, 16, 1); // Mono, 16-bit
+        using var writer = new WaveFileWriter(path, format);
+        writer.Write(pcmData, 0, pcmData.Length);
+    }
+
+    private void SaveAsMp3(string path, byte[] pcmData, int sampleRate)
+    {
+        // LameMP3FileWriter works almost exactly like WaveFileWriter
+        // 128kbps is a standard bitrate for TTS
+        var format = new WaveFormat(sampleRate, 16, 1);
+        using var writer = new LameMP3FileWriter(path, format, LAMEPreset.STANDARD);
+        writer.Write(pcmData, 0, pcmData.Length);
+    }
+
+    private void SaveAsOgg(string path, byte[] pcmData, int sampleRate)
+    {
+        // OggVorbisEncoder needs Float samples, not Bytes. 
+        // We must convert 16-bit PCM Bytes -> Float[]
+        
+        // 1. Convert Bytes to Shorts
+        short[] shortSamples = new short[pcmData.Length / 2];
+        Buffer.BlockCopy(pcmData, 0, shortSamples, 0, pcmData.Length);
+
+        // 2. Convert Shorts to Floats (-1.0 to 1.0)
+        float[] floatSamples = new float[shortSamples.Length];
+        for (int i = 0; i < shortSamples.Length; i++)
+        {
+            floatSamples[i] = shortSamples[i] / 32768f;
+        }
+
+        // 3. Setup Ogg Encoder
+        // '1' is the number of channels (Mono)
+        var info = VorbisInfo.InitVariableBitRate(1, sampleRate, 0.5f); 
+        
+        // 4. Encode
+        // We create a generic "serial number" for the stream
+        var serial = new Random().Next();
+        var oggStream = new OggStream(serial);
+        
+        // Create the file
+        using var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write);
+        
+        // Add header
+        var header = HeaderPacketBuilder.BuildInfoPacket(info);
+        var comments = HeaderPacketBuilder.BuildCommentsPacket(new Comments());
+        var books = HeaderPacketBuilder.BuildBooksPacket(info);
+        
+        oggStream.PacketIn(header);
+        oggStream.PacketIn(comments);
+        oggStream.PacketIn(books);
+        
+        FlushPages(oggStream, fileStream, true);
+
+        // Feed Data
+        var processingState = ProcessingState.Create(info);
+        processingState.WriteData(new [] { floatSamples }, floatSamples.Length); // Pass array of arrays (channels)
+        
+        while (!oggStream.Finished && processingState.PacketOut(out OggPacket packet))
+        {
+            oggStream.PacketIn(packet);
+            FlushPages(oggStream, fileStream, false);
+        }
+    }
+
+    private void FlushPages(OggStream oggStream, Stream output, bool force)
+    {
+        while (oggStream.PageOut(out OggPage page, force))
+        {
+            output.Write(page.Header, 0, page.Header.Length);
+            output.Write(page.Body, 0, page.Body.Length);
+        }
+    }
+    
     [RelayCommand]
     private void CloseProgram()
     {
@@ -431,9 +524,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                     Dispatcher.UIThread.Post(() =>
                     {
                         WordStatus = !loading ? currentWord ?? "Word: ..." : "Word: Loading...";
-                        CanStop = currentStatus != SoundStatus.Stopped;
+                        CanStop = currentStatus != IPlayer.SoundStatus.Stopped;
                         CanPlay = !loading;
-                        PlayButtonText = currentStatus == SoundStatus.Playing ? "Pause" : "Play";
+                        PlayButtonText = currentStatus == IPlayer.SoundStatus.Playing ? "Pause" : "Play";
                     });
                 }
             }
